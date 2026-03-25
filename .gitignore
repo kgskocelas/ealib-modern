@@ -46,3 +46,6 @@ build/
 */cmake_install.cmake
 */Makefile
 example-*
+
+# Claude Code local memory
+.claude/
