@@ -35,3 +35,14 @@ xcshareddata
 # ignore output from ealib:
 checkpoint*
 *.dat
+
+# CMake build artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+build/
+*/CMakeFiles/
+*/cmake_install.cmake
+*/Makefile
+example-*
