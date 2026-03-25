@@ -1,390 +1,282 @@
 # Installing EALib
 
-**These instructions are current as of 10/3/2019**
+> **Note from Claude Sonnet 4.6 (2026-03-25):** The instructions below were written on 2026-03-25 and replace the original 2019 guide, which described building and installing Boost.Build (b2/bjam) and configuring `site-config.jam`.  That guide no longer applies because Homebrew no longer ships b2/bjam alongside the Boost libraries and the build system has been migrated to CMake.  The original 2019 instructions are preserved in the git history of this file if you need to refer to them.
 
-## Max OS X
+---
 
-### Boost
+## macOS
 
-EALib relies on the Boost C++ libraries and the Boost.Build software building tool.  It does so for two big reasons: First, Boost has libraries that help out with lots of things that are super useful for evolutionary algorithms (serialization, random number generators, smart pointers, graphs, and linear algebra, to name a few).  Second, they go through great pains to make sure things are cross-platform, which helps when we want to develop locally & run things on a remote cluster.
+These instructions have been verified on:
 
-That said, Boost is considered hard to use.  The good news is that you won't usually need to mess with Boost after it's built - The instructions below install it to a system-wide location, and you won't usually need to touch it again.
+| Component      | Version                        |
+|----------------|--------------------------------|
+| macOS          | Ventura 13.7.8 (Intel x86_64)  |
+| Xcode          | 15.2 (Apple Clang 15.0.0)      |
+| Homebrew Boost | 1.87.0                         |
+| CMake          | 4.3.0                          |
 
-### Prerequisites
+### Step 1: Prerequisites
 
-1. These instructions are for XCode 11.0, Boost 1.71.0, and have been verified on Max OS X 10.14.6.  Other versions may work, but XCode MUST be version 11.0 to ensure that the project files are compatible.
-1. These instructions install Boost to /usr/local.  If you don't install Boost there, you'll have trouble with XCode.  
-1. Make sure that /usr/local/bin is on your path.
-1. Note that these instructions do not install all of Boost; some libraries are left out because we don't need them.
-1. If you've tried installing Boost before, you may run into trouble during build or configure steps.  Try to uninstall it, or at least unset the BOOST_BUILD_PATH environment variable.
-
-### Step 1: XCode
-
-Install XCode 11.0 from the App Store.
-
-Verify that the command-line tools are installed:
-```bash
-   <terminal>% xcode-select --install
-   xcode-select: error: command line tools are already installed, use "Software Update" to install updates
-```
-
-Verify that clang is installed:
-```bash
-<terminal>% clang --version
-Apple clang version 11.0.0 (clang-1100.0.20.17)
-Target: x86_64-apple-darwin18.7.0
-Thread model: posix
-InstalledDir: /Library/Developer/CommandLineTools/usr/bin
-<terminal>:ealib%
-```
-
-### Step 2: Boost
-
-Download [Boost 1.71.0](https://www.boost.org/users/download) to a temporary directory (let's call it "tmp"):
-```bash
-    <terminal>:tmp% tar -xzf boost_1_71_0.tar.gz
-    <terminal>:tmp% cd boost_1_71_0
-```
-
-Build b2 (which is Boost's equivalent of "autoconf+make"):
-```bash
-<terminal>:boost_1_71_0% cd tools/build
-<terminal>:build% ./bootstrap.sh --with-toolset=clang
-<terminal>:build% sudo ./b2 install --toolset=clang
-```
-
-Copy boost.jam:
-```bash
-<terminal>:build% sudo cp src/contrib/boost.jam /usr/local/share/boost-build/src/tools
-```
-
-Now you're ready to build Boost.  Go up to the boost_1_71_0 directory, and:
-```bash
-<terminal>:boost_1_71_0% ./bootstrap.sh --with-toolset=clang --with-libraries=filesystem,iostreams,program_options,regex,serialization,system,test,timer --without-icu
-<terminal>:boost_1_71_0% ./b2
-```
-
-**STOP.**  Look at the "Performing configuration checks" output (scroll back, it was the first thing printed).  Make sure that zlib is "yes."  If not, go install it (e.g., from HomeBrew).  Delete the bin.v2 directory and go back to the bootstrap step above.  Once zlib is "yes":
-```bash
-<terminal>:boost_1_71_0% sudo ./b2 install
-```
-
-You should now have a bunch of "libboost"-prefixed files in ```/usr/local/lib``` now and ```/usr/local/include/boost``` should be present and populated.
-
-Now we have to get you ready to build EALib:  Export BOOST_BUILD_PATH to your environment.  Assuming you use bash, put this in your \~/.bashrc file:
-```bash
-export BOOST_BUILD_PATH=/usr/local/share/boost-build
-```
-
-Copy the below into ```/usr/local/share/boost-build/site-config.jam``` (you'll need to sudo):
-```
-    using clang ;
-    import boost ;
-    boost.use-project ;
-    project site-config ;
-    lib z ;
-```
-
-That's it.
-
-
-## Step 3: Install EALib
-
-**IMPORTANT: Open a new terminal for Steps 3 & 4 to pick up environment changes.**
-
-Clone EALib to a new directory, and verify it builds:
+Install the Xcode Command Line Tools (skip if already installed):
 
 ```bash
-<terminal>:src% git clone https://github.com/dknoester/ealib.git ealib
-<terminal>:src% cd ealib
-<terminal>:ealib% b2
-...patience...
-...found 457 targets...
-...updating 47 targets...
-clang-darwin.compile.c++ bin/clang-darwin-11.0/debug/link-static/examples/all_ones.o
-clang-darwin.compile.c++ bin/clang-darwin-11.0/debug/link-static/examples/lod.o
-clang-darwin.compile.c++ bin/clang-darwin-11.0/debug/link-static/examples/pole_balancing.o
-clang-darwin.compile.c++ bin/clang-darwin-11.0/debug/link-static/examples/logic9.o
-...
-*** No errors detected
-clang-darwin.compile.c++ libea/bin/clang-darwin-11.0/debug/test/test_neurodevelopment.o
-clang-darwin.compile.c++ libea/bin/clang-darwin-11.0/debug/test/test_neuroevolution.o
-clang-darwin.link libea/bin/clang-darwin-11.0/debug/neural_network
-testing.unit-test libea/bin/clang-darwin-11.0/debug/neural_network.passed
-Running 4 test cases...
-
-*** No errors detected
-clang-darwin.compile.c++ libea/bin/clang-darwin-11.0/debug/test/test_markov_network_ea.o
-clang-darwin.link libea/bin/clang-darwin-11.0/debug/markov_network
-testing.unit-test libea/bin/clang-darwin-11.0/debug/markov_network.passed
-Running 4 test cases...
-
-*** No errors detected
-...updated 47 targets...
-<terminal>:ealib%
+xcode-select --install
 ```
 
-There will be a couple warnings.  Happy to accept pull requests to fix them.
-
-Now let's verify that XCode works.  First, set the Mac OS deployment target:
-
-1. Open ealib/ealib.xcodeproj in XCode.
-1. In project navigator (folder icon, upper left), click the ealib project (top of list, in blue).
-1. In the target-viewer pane (middle) click the ealib project (top), then the "Info" tab, make sure that the deployment target is set to the version of Mac OS you're using.
-
-Finally, let's verify that it builds:
-1. Highlight the "all" target (upper left drop-down, right of the "stop" button)
-1. Command-B (Product -> Build)
-
-There should be lots of warnings, but no errors.    
-    
-## (Bonus) Step 4: Install Avida4
-
-**After** you've installed Boost & EALib, clone the Avida4 project into the directory along-side EALib:
+Install [Homebrew](https://brew.sh), then use it to install CMake and Boost:
 
 ```bash
-<terminal>:src% git clone https://github.com/dknoester/avida4.git avida4
-<terminal>:src% ls
+brew install cmake boost
+```
+
+Verify:
+
 ```bash
-avida4 ealib
-<terminal>:src%
+cmake --version   # should print 3.15 or newer
+brew list boost     # should show boost is installed
 ```
 
-Build Avida4:
+### Step 2: Clone and build ealib
+
 ```bash
-<terminal>:src% cd avida4
-<terminal>:avida4% b2
-...found 192 targets...
-...updating 10 targets...
-clang-darwin.compile.c++ ../ealib/libea/bin/clang-darwin-11.0/debug/link-static/src/expansion.o
-clang-darwin.compile.c++ ../ealib/libea/bin/clang-darwin-11.0/debug/link-static/src/main.o
-clang-darwin.compile.c++ ../ealib/libea/bin/clang-darwin-11.0/debug/link-static/src/cmdline_interface.o
-clang-darwin.archive ../ealib/libea/bin/clang-darwin-11.0/debug/link-static/libea_runner.a
-clang-darwin.archive ../ealib/libea/bin/clang-darwin-11.0/debug/link-static/libea_cmdline.a
-clang-darwin.compile.c++ bin/clang-darwin-11.0/debug/link-static/src/logic9.o
-clang-darwin.link bin/clang-darwin-11.0/debug/link-static/avida-logic9
-common.copy /Users/toaster/bin/avida-logic9
-...updated 10 targets...
-<terminal>:ealib%
+git clone https://github.com/kgskocelas/ealib-modern.git ealib
+cd ealib
+cmake .
+make
 ```
 
-And test:
+CMake will find the Homebrew-installed Boost automatically.  `make` builds all targets.
+
+### Out-of-tree builds (optional)
+
+By default, `cmake .` and `make` place all their output files (compiled objects, libraries, and executables) directly inside the source tree alongside the source code.  An "out-of-tree" build keeps those generated files in a separate folder so your source directory stays clean.  To do this, replace the two build commands from Step 2 with:
+
 ```bash
-<terminal>:avida4% ./bin/clang-darwin-11.0/debug/link-static/avida-logic9 -c etc/logic9.cfg --verbose
-
-Active configuration options:
-    config=etc/logic9.cfg
-    ea.environment.x=60
-    ea.environment.y=60
-    ea.mutation.deletion.p=0.05
-    ea.mutation.insertion.p=0.05
-    ea.mutation.site.p=0.0075
-    ea.population.size=3600
-    ea.representation.size=100
-    ea.run.checkpoint_name=checkpoint.xml
-    ea.run.epochs=1
-    ea.run.updates=100
-    ea.scheduler.resource_slice=30
-    ea.scheduler.time_slice=30
-    ea.statistics.recording.period=10
-    verbose=
-
-update instantaneous_t average_t memory_usage
-0 0.0004 0.0004 3.8828
-1 0.0000 0.0002 3.8828
-2 0.0000 0.0001 3.8828
-3 0.0001 0.0001 3.8828
-...
-97 0.0008 0.0003 4.2695
-98 0.0008 0.0003 4.2695
-99 0.0007 0.0003 4.2695
-<terminal>:avida4%
+cmake -B build
+make -C build
 ```
 
-For XCode, **first close the EALib project if you have it open!**  Then, open avida4/avida4.**xcworkspace** -- **NOT** the project!  The workspace brings in the EALib project as a dependency, which is also why it's important that avida4 and ealib repos live in the same directory as each other.
+`cmake -B build` tells CMake to create a folder called `build/` and put all of its output there instead of in the current folder.  `make -C build` tells Make to run inside that `build/` folder.  The finished executables will be in `build/examples/` instead of `examples/`.
 
-You'll need to set the deployment target for Avida4 now (project navigator -> avida4 -> avida4 -> Info tab), and then build by selecting the "all (avida4 project)" project.  Again, there should be warnings but no errors.
+---
 
-That's it!
+### Step 3: Verify
 
-## Previous (2015) instructions for HPCC
+Eight example executables are produced in the `examples/` directory:
 
-Note: The below is severely outdated, and in need of updating.  Happy to accept pull requests.  A better way to do this is probably to containerize your project?  Not sure, but see here: https://wiki.hpcc.msu.edu/display/ITH/Singularity.
+| Executable         | What it exercises                                    |
+|--------------------|------------------------------------------------------|
+| `example-all-ones` | Simple all-ones genetic algorithm                    |
+| `example-logic9`   | Avida-style logic-9 task                             |
+| `example-lod`      | Line-of-descent EA                                   |
+| `example-mp`       | Metapopulation EA                                    |
+| `example-nsga2`    | Multi-objective NSGA-II                              |
+| `example-qhfc`     | QHFC EA                                              |
+| `example-pole`     | Pole balancing with neural networks (uses libann)    |
+| `example-mkv`      | XOR task with Markov networks (uses libmkv)          |
 
-**After** you've installed Boost, get a copy of the latest EALib and Avida4 sample project:
+Run the below installation verification test. It will create and populate a 'population_fitness.dat' file. When you open this file after running the test, the fitness should rise from roughly 0.40 toward 0.90 over 100 updates:
 
-    git clone https://github.com/dknoester/ealib.git ealib
-    git clone https://github.com/dknoester/avida4.git avida4
-
-To make sure everything's working:
-
-    cd ealib
-    bjam
-    cd ../avida4
-    bjam
-
-A sample run (from avida4/):
-
-    ./bin/clang-darwin-4.2.1/debug/link-static/avida-logic9 -c ./etc/logic9.cfg --verbose
-
-
-========
-MSU HPCC (ROLL YOUR OWN, AT YOUR OWN RISK, INSTALLS IN YOUR HOME DIR): 
-========
-
-Boost may (or maynot work) with all module configurations. I made the following modifications to my own modules to get it to work: 
-module rm Boost
-module load gcc
-(Put these in your bashrc file if you decide to go this route.)
-
-
-Make sure that your path includes ${HOME}/bin, e.g., put this:
-    export PATH=$PATH:${HOME}/bin
-... in your ~/.bashrc (or other shell startup script).
-
-Download boost (current rls == 1.55):
-    wget http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.gz
-    tar -xzf boost_1_55_0.tar.gz
-    cd boost_1_55_0
-
-Build bjam:
-    cd tools/build/v2
-    ./bootstrap.sh
-    ./b2 install --prefix=${HOME}
-
-Site config:
-    vi ~/share/boost-build/site-config.jam
->>>
-using gcc : : : <compileflags>-ftemplate-depth-255 ;
-import os ;
-local HOME = [ os.environ HOME ] ;
-local INC = $(HOME)/include ;
-local LIB = $(HOME)/lib ;
-local SYS = /usr/lib64 ;
-
-import boost ;
-using boost : 1.55 :
-    <include>$(INC)
-    <library>$(LIB)
-    <layout>system
-    ;
-boost.use-project 1.55 ;
-
-project site-config : requirements <include>$(INC) ;
-lib z : : <link>shared <name>z <search>$(SYS) ;
->>>
-
-Copy boost.jam:
-    cp contrib/boost.jam ~/share/boost-build/
-
-Set the boost build root; add this:
-    export BOOST_BUILD_PATH=$HOME/share/boost-build
-... to your ~/.bashrc (or other shell startup script).
-
-Build boost:
-    (back in boost_1_55_0/)
-    ./bootstrap.sh --prefix=${HOME}
-    ./b2
-    ./b2 install
-
-That should be it...
-
-========
-MSU HPCC (UPDATED 11.20.2019): 
-========
-Make sure that your path includes ${HOME}/bin, e.g., put this:
-    export PATH=$PATH:${HOME}/bin
-... in your ~/.bashrc (or other shell startup script).
-
-Change your modules to use gcc 9.1.0. To make this work, I modified my .bashrc file to include: 
-``` 
-module rm Boost
-module rm GNU/6.4.0-2.28 
-module rm  OpenMPI/2.1.2 
-module rm imkl/2018.1.163
-module rm OpenBLAS/0.2.20
-module rm FFTW/3.3.7
-module rm ScaLAPACK/2.0.2-OpenBLAS-0.2.20
-module rm  Python/3.6.4
-module rm binutils/2.28
-module load GCCcore/9.1.0
-```
-This resulted in the following modules loaded: 
 ```bash
-<terminal>:module list
+./examples/example-all-ones \
+  --ea.representation.size 20 --ea.population.size 100 \
+  --ea.generational_model.steady_state.lambda 10 \
+  --ea.mutation.site.p 0.05 --ea.run.updates 100 \
+  --ea.run.epochs 1 --ea.rng.seed 42 \
+  --ea.statistics.recording.period 10
+```
 
-Currently Loaded Modules:
-  1) Java/1.8.0_152   3) powertools/1.2   5) GMP/6.1.2      7) GCCcore/9.1.0
-  2) MATLAB/2018a     4) bzip2/1.0.6      6) libffi/3.2.1   8) zlib/1.2.11
+You can also try the other two examples that exercise the neural network and Markov network libraries.
 
-Inactive Modules:
-  1) tbb/2018_U3    3) libreadline/7.0   5) SQLite/3.21.0
-  2) CMake/3.11.1   4) Tcl/8.6.8
- ```
- Other modules may work, or may not work. 
+**Pole balancing** (`example-pole`) — A simulated pole is balanced on a moving cart.  The evolutionary algorithm evolves a small neural network that learns to keep the pole upright.  Run with:
 
-Download boost (current rls == 1.71)
-cd boost_1_71_0
-
-Build b2 (which is Boost's equivalent of "autoconf+make"):
 ```bash
-<terminal>:boost_1_71_0% cd tools/build
-<terminal>:build% ./bootstrap.sh --with-toolset=gcc
-<terminal>:build% ./b2 install --toolset=gcc --prefix=${HOME}
+./examples/example-pole \
+  --ea.representation.size 100 --ea.population.size 50 \
+  --ea.mutation.site.p 0.05 --ea.mutation.normal_real.var 0.1 \
+  --ea.generational_model.steady_state.lambda 5 \
+  --ea.run.updates 30 --ea.run.epochs 1 --ea.rng.seed 42 \
+  --ea.statistics.recording.period 30 \
+  --ea.fitness_function.pole_balancing.max_steps 1000 \
+  --ea.ann.input.n 5 --ea.ann.output.n 1 --ea.ann.hidden.n 5
 ```
 
-Copy boost.jam:
+> **Important:** `--ea.ann.input.n` must always be `5` for this example.  The pole-balancing fitness function sends exactly 5 numbers to the neural network (position, velocity, pole angle, pole angular velocity, and time).  If you change this to any other value the program will crash with an error.
+
+When it finishes, it creates a file called `fitness.dat` in the current directory. The test passed if: the file exists, has two rows of numbers (plus the header), and the numbers look similar to the values below. With only 30 updates the improvement is small.
+
+```
+update mean_generation min_fitness mean_fitness max_fitness
+0      0.0000          0.0060      0.0198       0.0750
+30     1.9400          0.0200      0.0487       0.1530
+```
+
+---
+
+**Markov network XOR** (`example-mkv`) — A population of Markov networks evolves to solve a logic puzzle (XOR).  Run with:
+
 ```bash
-<terminal>:build% cp src/contrib/boost.jam ~/share/boost-build/src/tools
+./examples/example-mkv -c etc/markov_network.cfg \
+  --ea.run.updates 30 --ea.statistics.recording.period 30 --ea.rng.seed 42
 ```
 
-Now you're ready to build Boost.  Go up to the boost_1_71_0 directory, and:
+This example also writes its output to a file called `fitness.dat`, overwriting the one from the pole balancing example above if you ran that first.  That is fine — they are separate tests. 
+
+The test passed if: the file exists, has two rows of numbers plus the header (see example below), and the `max_fitness` column shows a value above 64 (meaning at least one network in the population is doing better than random guessing).  
+
+```
+update mean_generation min_fitness mean_fitness max_fitness
+0      0.0000          50.0000     63.6800      77.0000
+30     1.6400          40.0000     63.2800      77.0000
+```
+
+---
+
+## Notes on Boost compatibility
+
+EALib requires Boost ≥ 1.80 and C++14 or later.  The CMake build handles both automatically:
+
+- `CMAKE_CXX_STANDARD` is set to **14** — required by `boost/math/tools/type_traits.hpp` in modern Boost (uses `std::decay_t`, `std::enable_if_t`, and similar C++14 type aliases)
+- `BOOST_BIND_GLOBAL_PLACEHOLDERS` is defined globally — suppresses the Boost ≥ 1.73 deprecation warning for unqualified `_1`/`_2` placeholders used throughout libea headers
+- `Boost::chrono` is linked explicitly alongside `Boost::timer` — prevents linker errors on platforms where `Boost::timer` does not carry the chrono dependency automatically
+
+See `MODERNIZATION_NOTES.md` for the full technical record of these decisions.
+
+---
+
+## MSU HPCC
+
+The section below was written based on current HPCC documentation (docs.icer.msu.edu).  The old 2019 HPCC instructions described building Boost 1.55/1.71 from source using b2/bjam — those no longer apply.  The HPCC now uses the Lmod module system and CMake is pre-installed as a module.  Whether a full Boost module is available can change as ICER updates their software stack; the instructions below cover both cases.
+
+> **You need an HPCC account.**  If you do not have one, request access through ICER at https://icer.msu.edu before starting.
+
+### Step 1: Connect and move to a development node
+
+Open a terminal and log in to the HPCC:
+
 ```bash
-<terminal>:boost_1_71_0% ./bootstrap.sh --with-toolset=gcc --with-libraries=filesystem,iostreams,program_options,regex,serialization,system,test,timer --without-icu --prefix=${HOME}
-<terminal>:boost_1_71_0% ./b2
+ssh YOUR_NETID@hpcc.msu.edu
 ```
 
-**STOP.**  Look at the "Performing configuration checks" output (scroll back, it was the first thing printed).  Make sure that zlib is "yes."  If not, go install it.  Delete the bin.v2 directory and go back to the bootstrap step above.  Once zlib is "yes":
+Replace `YOUR_NETID` with your MSU NetID.  You will be asked for your MSU password.
+
+Move to a development node (Any `dev-*` node works):
+
 ```bash
-<terminal>:boost_1_71_0% ./b2 install
+ssh dev-intel18
 ```
 
-You should now have a bunch of "libboost"-prefixed files in ```~/lib``` now and ```~/include/boost``` should be present and populated.
+### Step 2: Check whether a full Boost module is available
 
-Now we have to get you ready to build EALib:  Export BOOST_BUILD_PATH to your environment.  Assuming you use bash, put this in your \~/.bashrc file:
+Run this command to search for Boost:
+
 ```bash
-export BOOST_BUILD_PATH=${HOME}/share/boost-build
+module spider Boost
 ```
 
-Copy the below into ```~/share/boost-build/site-config.jam``` :
-```
-using gcc : : : <compileflags>-ftemplate-depth-255 ;
-import os ;
-local HOME = [ os.environ HOME ] ;
-local INC = $(HOME)/include ;
-local LIB = $(HOME)/lib ;
-local SYS = /usr/lib64 ;
+- **If you see a result like `Boost/1.83.0-GCC-13.2.0`** (a version starting with just `Boost/`, not `Boost.Python/`), then a pre-built Boost is available.  Go to **Step 3a**.
+- **If you only see results starting with `Boost.Python/`**, or nothing at all, then you need to build Boost yourself.  Go to **Step 3b**.
 
-import boost ;
-using boost : 1.71 :
-    <include>$(INC)
-    <library>$(LIB)
-    <layout>system
-    ;
-boost.use-project 1.71 ;
+---
 
-project site-config : requirements <include>$(INC) ;
-lib z : : <link>shared <name>z <search>$(SYS) ;
+### Step 3a: Build using a pre-installed Boost module
+
+Load a compatible set of GCC, CMake, and Boost.  The version numbers must match — use the versions you found in Step 2.  For example, if you saw `Boost/1.83.0-GCC-13.2.0`:
+
+```bash
+module purge
+module load GCC/13.2.0
+module load CMake/3.27.6-GCCcore-13.2.0
+module load Boost/1.83.0-GCC-13.2.0
 ```
 
-That should be it...
+`module purge` clears any previously loaded modules to avoid conflicts.  Then skip ahead to **Step 4**.
 
-To build your executables: 
-```
-b2 link=static
-```
-or for release mode: 
-```
-b2 link=static release
+---
+
+### Step 3b: Build Boost from source (if no Boost module is available)
+
+This takes about 5–10 minutes.  You only need to do it once.
+
+First, load GCC and CMake:
+
+```bash
+module purge
+module load GCC/12.3.0
+module load CMake/3.26.3-GCCcore-12.3.0
 ```
 
+Go to your home directory and download Boost 1.87.0:
+
+```bash
+cd $HOME
+wget https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz
+tar -xzf boost_1_87_0.tar.gz
+cd boost_1_87_0
+```
+
+Build and install Boost into a folder called `boost/` in your home directory:
+
+```bash
+./bootstrap.sh --with-toolset=gcc \
+  --with-libraries=filesystem,iostreams,program_options,regex,serialization,system,timer,chrono \
+  --prefix=$HOME/boost
+./b2 install
+```
+
+`./bootstrap.sh` sets up Boost's own build tool.  `--with-libraries=...` selects only the compiled Boost libraries that EALib actually needs (skipping the rest saves time).  `--prefix=$HOME/boost` means the result goes into `~/boost/` rather than a system directory.  `./b2 install` compiles and copies everything into place.
+
+When it finishes you should see a line like `...updated N targets...` with no errors.  You can now safely delete the source directory to free space:
+
+```bash
+cd $HOME
+rm -rf boost_1_87_0 boost_1_87_0.tar.gz
+```
+
+---
+
+### Step 4: Clone and build EALib
+
+Go to your home directory and clone the repo:
+
+```bash
+cd $HOME
+git clone https://github.com/kgskocelas/ealib-modern.git ealib
+cd ealib
+```
+
+**If you followed Step 3a** (pre-installed Boost module):
+
+```bash
+cmake .
+make
+```
+
+**If you followed Step 3b** (Boost built from source into `$HOME/boost`):
+
+```bash
+cmake -DBOOST_ROOT=$HOME/boost .
+make
+```
+
+`-DBOOST_ROOT=$HOME/boost` tells CMake where to find Boost since it is not in a standard system location.  Everything else is the same.
+
+`make` will take a minute or two.  When it finishes with no errors, the example executables are in the `examples/` directory.
+
+### Step 5: Verify
+
+Run the same verification test as the macOS instructions:
+
+### Saving your module setup for future sessions
+
+The modules you loaded with `module load` are only active during your current login session.  The next time you log in, they will be gone and the `cmake`/`make` commands will fail.  To avoid typing the same `module load` commands every time, save your current setup:
+
+```bash
+module save ealib-build
+```
+
+The next time you log in, restore it with:
+
+```bash
+module restore ealib-build
+```
