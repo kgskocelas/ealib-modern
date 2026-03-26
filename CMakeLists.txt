@@ -143,6 +143,9 @@ list(APPEND CMAKE_PREFIX_PATH /usr/local)
 # Boost::serialization, Boost::filesystem, etc. that we can link against.
 #
 # Docs: https://cmake.org/cmake/help/latest/module/FindBoost.html
+# CMP0167 NEW: use Boost's own BoostConfig.cmake instead of CMake's
+# deprecated FindBoost module (removed in CMake 3.30+).
+cmake_policy(SET CMP0167 NEW)
 find_package(Boost 1.80 REQUIRED COMPONENTS
     serialization
     iostreams
