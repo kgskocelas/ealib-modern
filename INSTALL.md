@@ -33,7 +33,7 @@ Verify:
 
 ```bash
 cmake --version   # should print 3.15 or newer
-brew list boost     # should show boost is installed
+brew list boost   # should show boost is installed
 ```
 
 ### Step 2: Clone and build ealib
@@ -152,19 +152,7 @@ The section below was written based on current HPCC documentation (docs.icer.msu
 
 ### Step 1: Connect and move to a development node
 
-Open a terminal and log in to the HPCC:
-
-```bash
-ssh YOUR_NETID@hpcc.msu.edu
-```
-
-Replace `YOUR_NETID` with your MSU NetID.  You will be asked for your MSU password.
-
-Move to a development node (Any `dev-*` node works):
-
-```bash
-ssh dev-intel18
-```
+Open a terminal and log in to the HPCC.
 
 ### Step 2: Check whether a full Boost module is available
 
@@ -174,12 +162,12 @@ Run this command to search for Boost:
 module spider Boost
 ```
 
-- **If you see a result like `Boost/1.83.0-GCC-13.2.0`** (a version starting with just `Boost/`, not `Boost.Python/`), then a pre-built Boost is available.  Go to **Step 3a**.
-- **If you only see results starting with `Boost.Python/`**, or nothing at all, then you need to build Boost yourself.  Go to **Step 3b**.
+- **If you see a result like `Boost/1.83.0-GCC-13.2.0`** (a version starting with just `Boost/`, not `Boost.Python/`), then a pre-built Boost is available.  
+- **If you only see results starting with `Boost.Python/`**, or nothing at all, then you need to build Boost yourself.
 
 ---
 
-### Step 3a: Build using a pre-installed Boost module
+### Step 3: Build using a pre-installed Boost module
 
 Load a compatible set of GCC, CMake, and Boost.  The version numbers must match — use the versions you found in Step 2.  For example, if you saw `Boost/1.83.0-GCC-13.2.0`:
 
@@ -190,89 +178,32 @@ module load CMake/3.27.6-GCCcore-13.2.0
 module load Boost/1.83.0-GCC-13.2.0
 ```
 
-`module purge` clears any previously loaded modules to avoid conflicts.  Then skip ahead to **Step 4**.
-
----
-
-### Step 3b: Build Boost from source (if no Boost module is available)
-
-This takes about 5–10 minutes.  You only need to do it once.
-
-First, load GCC and CMake:
-
-```bash
-module purge
-module load GCC/12.3.0
-module load CMake/3.26.3-GCCcore-12.3.0
-```
-
-Go to your home directory and download Boost 1.87.0:
-
-```bash
-cd $HOME
-wget https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz
-tar -xzf boost_1_87_0.tar.gz
-cd boost_1_87_0
-```
-
-Build and install Boost into a folder called `boost/` in your home directory:
-
-```bash
-./bootstrap.sh --with-toolset=gcc \
-  --with-libraries=filesystem,iostreams,program_options,regex,serialization,system,timer,chrono \
-  --prefix=$HOME/boost
-./b2 install
-```
-
-`./bootstrap.sh` sets up Boost's own build tool.  `--with-libraries=...` selects only the compiled Boost libraries that EALib actually needs (skipping the rest saves time).  `--prefix=$HOME/boost` means the result goes into `~/boost/` rather than a system directory.  `./b2 install` compiles and copies everything into place.
-
-When it finishes you should see a line like `...updated N targets...` with no errors.  You can now safely delete the source directory to free space:
-
-```bash
-cd $HOME
-rm -rf boost_1_87_0 boost_1_87_0.tar.gz
-```
-
----
+`module purge` clears any previously loaded modules to avoid conflicts.  
 
 ### Step 4: Clone and build EALib
 
-Go to your home directory and clone the repo:
+Go to your home directory, clone the repo, and build EALib:
 
 ```bash
 cd $HOME
 git clone https://github.com/kgskocelas/ealib-modern.git ealib
 cd ealib
-```
-
-**If you followed Step 3a** (pre-installed Boost module):
-
-```bash
 cmake .
 make
 ```
-
-**If you followed Step 3b** (Boost built from source into `$HOME/boost`):
-
-```bash
-cmake -DBOOST_ROOT=$HOME/boost .
-make
-```
-
-`-DBOOST_ROOT=$HOME/boost` tells CMake where to find Boost since it is not in a standard system location.  Everything else is the same.
 
 `make` will take a minute or two.  When it finishes with no errors, the example executables are in the `examples/` directory.
 
 ### Step 5: Verify
 
-Run the same verification test as the macOS instructions:
+Run the same verification test as the macOS instructions.
 
 ### Saving your module setup for future sessions
 
 The modules you loaded with `module load` are only active during your current login session.  The next time you log in, they will be gone and the `cmake`/`make` commands will fail.  To avoid typing the same `module load` commands every time, save your current setup:
 
 ```bash
-module save ealib-build
+module save ealib-modern-build
 ```
 
 The next time you log in, restore it with:
