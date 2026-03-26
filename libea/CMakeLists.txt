@@ -187,7 +187,6 @@ target_link_libraries(libea_cmdline PUBLIC
     Boost::serialization
     Boost::iostreams
     Boost::regex
-    Boost::system
     Boost::filesystem
     Boost::program_options
     Boost::timer

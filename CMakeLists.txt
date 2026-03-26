@@ -147,7 +147,6 @@ find_package(Boost 1.80 REQUIRED COMPONENTS
     serialization
     iostreams
     regex
-    system
     filesystem
     program_options
     timer
