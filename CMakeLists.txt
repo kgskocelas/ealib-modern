@@ -145,7 +145,10 @@ list(APPEND CMAKE_PREFIX_PATH /usr/local)
 # Docs: https://cmake.org/cmake/help/latest/module/FindBoost.html
 # CMP0167 NEW: use Boost's own BoostConfig.cmake instead of CMake's
 # deprecated FindBoost module (removed in CMake 3.30+).
-cmake_policy(SET CMP0167 NEW)
+# Guard: CMP0167 was introduced in CMake 3.30; older versions error on it.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.30")
+    cmake_policy(SET CMP0167 NEW)
+endif()
 find_package(Boost 1.80 REQUIRED COMPONENTS
     serialization
     iostreams
