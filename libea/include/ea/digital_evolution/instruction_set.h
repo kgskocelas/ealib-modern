@@ -677,6 +677,11 @@ namespace ealib {
         
         //! Retrieve a pointer to instruction i.
         inst_ptr_type operator[](std::size_t i) {
+            if (i >= _isa.size()) {
+                throw std::out_of_range("instruction index " + std::to_string(i) +
+                                        " is out of range (ISA size=" +
+                                        std::to_string(_isa.size()) + ")");
+            }
             return _isa[i];
         }
         
