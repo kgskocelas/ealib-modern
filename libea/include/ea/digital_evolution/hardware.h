@@ -63,7 +63,15 @@ namespace ealib {
     class hardware {
     public:
         typedef circular_genome<unsigned int> genome_type;
-        typedef mutation::operators::per_site<mutation::site::uniform_isa> mutation_operator_type;
+        // Updated by Claude Code on 2026-04-04:
+        // mutation_operator_type is instantiated in mutate() and called on each
+        // offspring after replication. indel<per_site<uniform_isa>> chains two
+        // operators: indel runs first (checking MUTATION_INSERTION_P and
+        // MUTATION_DELETION_P), then calls its inner per_site<uniform_isa>
+        // operator (checking MUTATION_PER_SITE_P per site). 
+        typedef mutation::operators::indel<
+            mutation::operators::per_site<mutation::site::uniform_isa>
+        > mutation_operator_type;
         
         const static int NOP_A = 0;
         const static int NOP_B = 1; 
